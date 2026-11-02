@@ -1,7 +1,7 @@
 <!DOCTYPE html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Admin Skin</title>
 <style>body{font-family:sans-serif;background:#111;color:#eee;max-width:560px;margin:auto;padding:16px}input,select,button{width:100%;padding:9px;margin:4px 0;box-sizing:border-box}.c{display:flex;gap:10px;align-items:center;background:#222;padding:8px;margin:6px 0;border-radius:8px}.c img,.c video{width:48px;height:48px;object-fit:contain}.c span{flex:1}.c button{width:auto}</style>
 <h2>🔐 Admin Skin</h2>
-<input id=k type=password placeholder="okaru_mbudmbud123 (ADMIN_KEY)"><button onclick=ld()>Masuk / muat daftar</button>
+<input id=k type=password placeholder="Kunci admin (ADMIN_KEY)"><button onclick=ld()>Masuk / muat daftar</button>
 <div id=f hidden><h3>Tambah skin</h3>
 <input id=n placeholder="Nama skin" maxlength=20>
 <input id=file type=file accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm">
@@ -15,5 +15,6 @@
 const $=i=>document.getElementById(i);let K='';
 async function a(m,p,b){const r=await fetch(p,{method:m,headers:{'Content-Type':'application/json','X-Admin-Key':K},body:b&&JSON.stringify(b)});const j=await r.json();if(!r.ok)throw j.error||r.status;return j}
 async function ld(){K=$('k').value;try{const j=await a('GET','/api/admin/skins');$('f').hidden=false;$('l').innerHTML='';j.skins.forEach(s=>{const d=document.createElement('div');d.className='c';const m=document.createElement(s.type=='video'?'video':'img');m.src=s.file;m.muted=m.loop=m.autoplay=true;const t=document.createElement('span');t.textContent=s.name+' — '+s.cond.type+' ≥ '+s.cond.value;const x=document.createElement('button');x.textContent='🗑';x.onclick=async()=>{if(confirm('Hapus '+s.name+'?')){await a('DELETE','/api/admin/skins/'+s.id);ld()}};d.append(m,t,x);$('l').append(d)})}catch(e){alert('Gagal: '+e)}}
-function add(){const f=$('file').files[0];if(!f||!$('n').value)return alert('Isi nama & pilih file');if(f.size>4e6)return alert('File maksimal 4 MB (batas Netlify)');const fr=new FileReader();fr.onload=async()=>{try{await a('POST','/api/admin/skins',{name:$('n').value,data:fr.result.split(',')[1],cond:{type:$('t').value,value:$('v').value},howto:$('h').value,rotate:$('r').value});alert('Skin ditambahkan');$('n').value=$('file').value='';ld()}catch(e){alert('Gagal: '+e)}};fr.readAsDataURL(f)}
+async function add(){const f=$('file').files[0];if(!f||!$('n').value)return alert('Isi nama & pilih file');if(f.size>2e7)return alert('File maksimal 20 MB');
+try{const r=await fetch('/api/admin/skins',{method:'POST',headers:{'X-Admin-Key':K,'X-Meta':encodeURIComponent(JSON.stringify({name:$('n').value,cond:{type:$('t').value,value:$('v').value},howto:$('h').value,rotate:$('r').value}))},body:f});const j=await r.json();if(!r.ok)throw j.error||r.status;alert('Skin ditambahkan');$('n').value=$('file').value='';ld()}catch(e){alert('Gagal: '+e)}}
 </script>
