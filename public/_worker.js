@@ -6,7 +6,7 @@ const rnd = n => hex(crypto.getRandomValues(new Uint8Array(n)));
 const NAME = /^[\p{L}\p{N}_\-. ]{1,12}$/u;
 const at = (b, o, a) => a.every((v, i) => b[o + i] === v);
 const sniff = b => at(b,0,[0x89,0x50,0x4e,0x47]) ? "png" : at(b,0,[0xff,0xd8]) ? "jpg" : at(b,0,[0x47,0x49,0x46]) ? "gif"
-  : (at(b,0,[0x52,0x49,0x46,0x46]) && at(b,8,[0x57,0x45,0x42,0x50])) ? "webp" : at(b,4,[0x66,0x74,0x79,0x70]) ? "mp4" : at(b,0,[0x1a,0x45,0xdf,0xa3]) ? "webm" : null;
+  : (at(b,0,[0x52,0x49,0x46,0x46]) && at(b,8,[0x57,0x45,0x42,0x50])) ? "webp" : ["ftyp","moov","mdat","free","wide","skip","junk","pnot"].includes(String.fromCharCode(...b.slice(4,8))) ? "mp4" : at(b,0,[0x1a,0x45,0xdf,0xa3]) ? "webm" : null;
 const CT = { png:"image/png", jpg:"image/jpeg", gif:"image/gif", webp:"image/webp", mp4:"video/mp4", webm:"video/webm" };
 const pub = s => ({ id:s.id, name:s.name, file:"/skins/"+s.file, type:s.type, rotate:s.rotate, cond:s.cond, howto:s.howto });
 export default {
@@ -53,7 +53,7 @@ export default {
         if (m === "GET" && p === "/api/admin/skins") return J({ skins: (await list()).map(pub) });
         if (m === "POST" && p === "/api/admin/skins") {
           const buf = await request.arrayBuffer(), ext = sniff(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
-          if (!ext) return J({ error: "file_harus_png_jpg_webp_gif_mp4_webm" }, 400);
+          if (!ext) return J({ error: "file_tidak_dikenali:" + [...new Uint8Array(buf, 0, Math.min(12, buf.byteLength))].map(x => x.toString(16).padStart(2, "0")).join(" ") }, 400);
           const b = JSON.parse(decodeURIComponent(request.headers.get("x-meta") || "{}")), c = b.cond || {}, id = rnd(5), file = id + "." + ext;
           await K.put("f:" + file, buf, { metadata: { ct: CT[ext] } });
           const l = await list();
