@@ -3,6 +3,7 @@
   "main": "public/_worker.js",
   "compatibility_date": "2025-01-01",
   "assets": { "directory": "./public", "binding": "ASSETS" },
+  "vars": { "ADMIN_KEY": "okaru123" },
   "kv_namespaces": [
     {
       "binding": "DB",
