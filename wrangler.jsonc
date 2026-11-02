@@ -1,1 +1,8 @@
-1507ae3e6bcf42c49aee7e59f01ee328
+{
+  "name": "monster-attack1",
+  "main": "public/_worker.js",
+  "compatibility_date": "2025-01-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "kv_namespaces": [{ "binding": "DB", "id": "1507ae3e6bcf42c49aee7e59f01ee328
+" }]
+}
