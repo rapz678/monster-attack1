@@ -257,6 +257,7 @@
         <div class="stat-box skor-box">🏆 <span id="score">0</span></div>
         <div class="stat-box hp-box">❤️ <span id="lives">3</span></div>
         <div class="stat-box">⏱ <span id="timer">00:00</span></div>
+        <div class="stat-box" style="position:absolute;top:50px;left:0;padding:5px 14px;font-size:14px">💀 <span id="kills">0</span> <small style="opacity:.7">/ <span id="killsAll">0</span> total</small></div>
         <button id="pause-btn" class="pause-btn-ingame" onclick="togglePause()">⏸ JEDA</button>
     </div>
     
@@ -588,7 +589,7 @@ function spawnEnemy() {
 function update() {
     if (!gameRunning || isPaused) return; 
     
-    const nw=Date.now(),dt=lastTick?Math.min(nw-lastTick,200):0;lastTick=nw;playMs+=dt;stats.ms+=dt;$('timer').textContent=fmtT(playMs);
+    const nw=Date.now(),dt=lastTick?Math.min(nw-lastTick,200):0;lastTick=nw;playMs+=dt;stats.ms+=dt;$('timer').textContent=fmtT(playMs);$('kills').textContent=enemiesKilled;$('killsAll').textContent=stats.kills;
     if (keys['arrowleft'] || keys['a']) player.x -= player.speed;
     if (keys['arrowright'] || keys['d']) player.x += player.speed;
     if (keys['arrowup'] || keys['w']) player.y -= player.speed;
