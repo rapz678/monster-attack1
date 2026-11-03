@@ -8,7 +8,15 @@ const at = (b, o, a) => a.every((v, i) => b[o + i] === v);
 const sniff = b => at(b,0,[0x89,0x50,0x4e,0x47]) ? "png" : at(b,0,[0xff,0xd8]) ? "jpg" : at(b,0,[0x47,0x49,0x46]) ? "gif"
   : (at(b,0,[0x52,0x49,0x46,0x46]) && at(b,8,[0x57,0x45,0x42,0x50])) ? "webp" : ["ftyp","moov","mdat","free","wide","skip","junk","pnot"].includes(String.fromCharCode(...b.slice(4,8))) ? "mp4" : at(b,0,[0x1a,0x45,0xdf,0xa3]) ? "webm" : null;
 const CT = { png:"image/png", jpg:"image/jpeg", gif:"image/gif", webp:"image/webp", mp4:"video/mp4", webm:"video/webm" };
-const pub = s => ({ id:s.id, name:s.name, file:"/skins/"+s.file, type:s.type, rotate:s.rotate, cond:s.cond, howto:s.howto });
+const pub = s => ({ id:s.id, name:s.name, file:"/skins/"+s.file, type:s.type, rotate:s.rotate, bg:s.bg, size:s.size, fire:s.fire, cond:s.cond, howto:s.howto });
+const HEX = /^#[0-9a-f]{6}$/i, cl = (v, a, b, d) => { if (v === "" || v == null) return d; v = Number(v); return Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d; };
+const cleanMeta = b => { const c = b.cond || {}, f = b.fire || {}; return {
+  name: String(b.name || "Skin").slice(0, 20), rotate: [0,90,180,270].includes(+b.rotate) ? +b.rotate : 0,
+  bg: ["auto","none","black","white","green"].includes(b.bg) ? b.bg : "auto", size: cl(b.size, 24, 220, 64),
+  cond: { type: ["free","score","kills","bosses","playtime","games","badges"].includes(c.type) ? c.type : "free", value: Math.max(0, Math.floor(+c.value || 0)) },
+  howto: String(b.howto || "").slice(0, 200),
+  fire: { color: HEX.test(f.color) ? f.color : "", rocketColor: HEX.test(f.rocketColor) ? f.rocketColor : "#ff6a00", bulletSpeed: cl(f.bulletSpeed, 3, 30, 12), rocketSpeed: cl(f.rocketSpeed, 2, 30, 9),
+    weapons: (Array.isArray(f.weapons) ? f.weapons : []).slice(0, 12).map(x => ({ type: x.type === "rocket" ? "rocket" : "bullet", x: cl(x.x, -90, 90, 0), y: cl(x.y, -70, 70, 0), angle: cl(x.angle, -80, 80, 0) })) } }; };
 export default {
   async fetch(request, env) {
     const u = new URL(request.url), p = u.pathname, m = request.method, K = env.DB;
@@ -51,15 +59,17 @@ export default {
       if (p.startsWith("/api/admin")) {
         if (!env.ADMIN_KEY || (await sha(request.headers.get("x-admin-key") || "")) !== (await sha(env.ADMIN_KEY))) return J({ error: "kunci_salah" }, 401);
         if (m === "GET" && p === "/api/admin/skins") return J({ skins: (await list()).map(pub) });
-        if (m === "POST" && p === "/api/admin/skins") {
-          const buf = await request.arrayBuffer(), ext = sniff(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
-          if (!ext) return J({ error: "file_tidak_dikenali:" + [...new Uint8Array(buf, 0, Math.min(12, buf.byteLength))].map(x => x.toString(16).padStart(2, "0")).join(" ") }, 400);
-          const b = JSON.parse(decodeURIComponent(request.headers.get("x-meta") || "{}")), c = b.cond || {}, id = rnd(5), file = id + "." + ext;
-          await K.put("f:" + file, buf, { metadata: { ct: CT[ext] } });
-          const l = await list();
-          l.push({ id, name: String(b.name || "Skin").slice(0, 20), file, type: (ext === "mp4" || ext === "webm") ? "video" : "image", rotate: [0,90,180,270].includes(+b.rotate) ? +b.rotate : 0,
-            cond: { type: ["free","score","kills","bosses","playtime","games","badges"].includes(c.type) ? c.type : "free", value: Math.max(0, Math.floor(+c.value || 0)) }, howto: String(b.howto || "").slice(0, 200) });
-          await K.put("skins", JSON.stringify(l));
+        if ((m === "POST" && p === "/api/admin/skins") || (m === "PUT" && p.startsWith("/api/admin/skins/"))) {
+          const buf = await request.arrayBuffer(), l = await list(), meta = JSON.parse(decodeURIComponent(request.headers.get("x-meta") || "{}"));
+          let s = m === "PUT" ? l.find(x => x.id === p.split("/").pop()) : null, ext = null;
+          if (m === "PUT" && !s) return J({ error: "tidak_ada" }, 404);
+          if (buf.byteLength || !s) {
+            ext = sniff(new Uint8Array(buf, 0, Math.min(12, buf.byteLength)));
+            if (!ext) return J({ error: "file_tidak_dikenali:" + [...new Uint8Array(buf, 0, Math.min(12, buf.byteLength))].map(x => x.toString(16).padStart(2, "0")).join(" ") }, 400);
+          }
+          if (!s) { s = { id: rnd(5) }; l.push(s); }
+          if (ext) { const old = s.file; s.file = s.id + "-" + rnd(3) + "." + ext; s.type = (ext === "mp4" || ext === "webm") ? "video" : "image"; await K.put("f:" + s.file, buf, { metadata: { ct: CT[ext] } }); if (old) await K.delete("f:" + old); }
+          Object.assign(s, cleanMeta(meta)); await K.put("skins", JSON.stringify(l));
           return J({ ok: true });
         }
         if (m === "DELETE" && p.startsWith("/api/admin/skins/")) {
