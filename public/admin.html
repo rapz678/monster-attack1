@@ -1,20 +1,44 @@
 <!DOCTYPE html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Admin Skin</title>
-<style>body{font-family:sans-serif;background:#111;color:#eee;max-width:560px;margin:auto;padding:16px}input,select,button{width:100%;padding:9px;margin:4px 0;box-sizing:border-box}.c{display:flex;gap:10px;align-items:center;background:#222;padding:8px;margin:6px 0;border-radius:8px}.c img,.c video{width:48px;height:48px;object-fit:contain}.c span{flex:1}.c button{width:auto}</style>
+<style>body{font-family:sans-serif;background:#111;color:#eee;max-width:600px;margin:auto;padding:16px}input,select,button{width:100%;padding:9px;margin:4px 0;box-sizing:border-box}input[type=color]{height:42px;padding:2px}.c,.w{display:flex;gap:6px;align-items:center;background:#222;padding:8px;margin:6px 0;border-radius:8px}.c img,.c video{width:48px;height:48px;object-fit:contain}.c span{flex:1}.c button,.w button{width:auto}.w input,.w select{width:60px;margin:0;padding:6px}.w select{width:84px}h4{margin:14px 0 2px;color:#0ff}small{color:#999}.r{display:flex;gap:8px}.r>*{flex:1}</style>
 <h2>🔐 Admin Skin</h2>
 <input id=k type=password placeholder="Kunci admin (ADMIN_KEY)"><button onclick=ld()>Masuk / muat daftar</button>
-<div id=f hidden><h3>Tambah skin</h3>
+<div id=f hidden><h3>Skin</h3>
 <input id=n placeholder="Nama skin" maxlength=20>
-<input id=file type=file accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm">
-<small>PNG/WebP transparan paling bagus. GIF hanya tampil frame pertama; untuk animasi pakai MP4/WebM.</small>
+<input id=file type=file accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"><small>Saat edit, kosongkan file kalau tidak ingin mengganti gambar/video.</small>
+<h4>Tampilan</h4>
+<select id=bg><option value=auto>Hapus latar: otomatis (hitam untuk MP4/JPG)<option value=none>Hapus latar: tidak<option value=black>Hapus latar hitam<option value=white>Hapus latar putih<option value=green>Hapus latar hijau</select>
+<div class=r><input id=sz type=number value=64 min=24 max=220 placeholder="Ukuran pesawat"><select id=r><option value=0>Moncong ke atas<option value=270>Moncong ke kanan<option value=90>Moncong ke kiri<option value=180>Moncong ke bawah</select></div><small>Ukuran pesawat 24-220 (normal 64). Besarkan kalau pesawat di videonya kecil.</small>
+<h4>Syarat membuka</h4>
 <select id=t><option value=free>Gratis (langsung terbuka)<option value=score>Skor tertinggi sekali main ≥ nilai<option value=kills>Total kill musuh ≥ nilai<option value=bosses>Total boss dikalahkan ≥ nilai<option value=playtime>Total menit bermain ≥ nilai<option value=games>Jumlah kali main ≥ nilai<option value=badges>Jumlah lencana ≥ nilai</select>
 <input id=v type=number min=0 placeholder="Nilai syarat (mis. 5000)">
 <input id=h placeholder="Cara mendapatkan (teks untuk pemain, opsional)" maxlength=200>
-<select id=r><option value=0>Moncong pesawat menghadap atas (normal)<option value=270>Moncong menghadap kanan<option value=90>Moncong menghadap kiri<option value=180>Moncong menghadap bawah</select>
-<button onclick=add()>➕ Tambah skin</button><h3>Daftar skin</h3><div id=l></div></div>
+<h4>Tembakan</h4>
+<div class=r><div><small>Warna peluru</small><input id=c1 type=color value="#ffffff"></div><div><small>Kecepatan peluru (3-30)</small><input id=s1 type=number value=12></div></div>
+<div class=r><div><small>Warna roket</small><input id=c2 type=color value="#ff6a00"></div><div><small>Kecepatan roket (2-30)</small><input id=s2 type=number value=9></div></div>
+<h4>Senjata (jumlah dan posisi)</h4>
+<small>Posisi dihitung dari tengah pesawat: X kiri(−)/kanan(+), Y atas(−)/bawah(+), Sudut 0 lurus ke atas, minus miring kiri, plus miring kanan. Kosong = tembakan standar 1 peluru.</small>
+<select id=pr onchange=preset(this.value)><option value="">Isi cepat (preset)...<option value=1>1 senjata tengah<option value=2>2 senjata kiri-kanan<option value=3>3 senjata (tengah + 2 miring)<option value=5>5 senjata menyebar<option value=mix>2 peluru + 1 roket</select>
+<div id=wl></div><button type=button onclick=row()>+ Tambah senjata</button>
+<button id=sv onclick=save()>➕ Tambah skin</button><button id=cn onclick=reset() hidden>Batal edit</button>
+<h3>Daftar skin</h3><div id=l></div></div>
 <script>
-const $=i=>document.getElementById(i);let K='';
-async function a(m,p,b){const r=await fetch(p,{method:m,headers:{'Content-Type':'application/json','X-Admin-Key':K},body:b&&JSON.stringify(b)});const j=await r.json();if(!r.ok)throw j.error||r.status;return j}
-async function ld(){K=$('k').value;try{const j=await a('GET','/api/admin/skins');$('f').hidden=false;$('l').innerHTML='';j.skins.forEach(s=>{const d=document.createElement('div');d.className='c';const m=document.createElement(s.type=='video'?'video':'img');m.src=s.file;m.muted=m.loop=m.autoplay=true;const t=document.createElement('span');t.textContent=s.name+' — '+s.cond.type+' ≥ '+s.cond.value;const x=document.createElement('button');x.textContent='🗑';x.onclick=async()=>{if(confirm('Hapus '+s.name+'?')){await a('DELETE','/api/admin/skins/'+s.id);ld()}};d.append(m,t,x);$('l').append(d)})}catch(e){alert('Gagal: '+e)}}
-async function add(){const f=$('file').files[0];if(!f||!$('n').value)return alert('Isi nama & pilih file');if(f.size>2e7)return alert('File maksimal 20 MB');
-try{const r=await fetch('/api/admin/skins',{method:'POST',headers:{'X-Admin-Key':K,'X-Meta':encodeURIComponent(JSON.stringify({name:$('n').value,cond:{type:$('t').value,value:$('v').value},howto:$('h').value,rotate:$('r').value}))},body:f});const j=await r.json();if(!r.ok)throw j.error||r.status;alert('Skin ditambahkan');$('n').value=$('file').value='';ld()}catch(e){alert('Gagal: '+e)}}
+const $=i=>document.getElementById(i);let K='',ED=null;
+async function a(m,p){const r=await fetch(p,{method:m,headers:{'X-Admin-Key':K}});const j=await r.json();if(!r.ok)throw j.error||r.status;return j}
+function row(w){w=w&&w.type!==undefined||w&&w.x!==undefined?w:{};const d=document.createElement('div');d.className='w';
+ d.innerHTML='<select class=wt><option value=bullet>Peluru<option value=rocket>Roket</select>X<input class=wx type=number>Y<input class=wy type=number>∠<input class=wa type=number><button type=button onclick="this.parentNode.remove()">✕</button>';
+ d.querySelector('.wt').value=w.type||'bullet';d.querySelector('.wx').value=w.x||0;d.querySelector('.wy').value=w.y||0;d.querySelector('.wa').value=w.angle||0;$('wl').append(d)}
+function preset(v){$('wl').innerHTML='';const P={1:[[0,-20,0]],2:[[-14,-10,0],[14,-10,0]],3:[[0,-20,0],[-18,-8,-8],[18,-8,8]],5:[[-26,-4,-24],[-13,-12,-12],[0,-20,0],[13,-12,12],[26,-4,24]]};
+ if(v=='mix'){row({x:-14,y:-10});row({x:14,y:-10});row({type:'rocket',x:0,y:-20})}else if(P[v])P[v].forEach(q=>row({x:q[0],y:q[1],angle:q[2]}));$('pr').value=''}
+function meta(){return{name:$('n').value,bg:$('bg').value,size:$('sz').value,rotate:$('r').value,cond:{type:$('t').value,value:$('v').value},howto:$('h').value,
+ fire:{color:$('c1').value,bulletSpeed:$('s1').value,rocketColor:$('c2').value,rocketSpeed:$('s2').value,
+ weapons:[...document.querySelectorAll('#wl .w')].map(d=>({type:d.querySelector('.wt').value,x:d.querySelector('.wx').value,y:d.querySelector('.wy').value,angle:d.querySelector('.wa').value}))}}}
+async function save(){const f=$('file').files[0];if(!$('n').value)return alert('Isi nama skin');if(!f&&!ED)return alert('Pilih file gambar/video');if(f&&f.size>2e7)return alert('File maksimal 20 MB');
+ try{const r=await fetch(ED?'/api/admin/skins/'+ED:'/api/admin/skins',{method:ED?'PUT':'POST',headers:{'X-Admin-Key':K,'X-Meta':encodeURIComponent(JSON.stringify(meta()))},body:f||undefined});const j=await r.json();if(!r.ok)throw j.error||r.status;alert(ED?'Skin diperbarui':'Skin ditambahkan');reset();ld()}catch(e){alert('Gagal: '+e)}}
+function reset(){ED=null;$('n').value=$('file').value='';$('sv').textContent='➕ Tambah skin';$('cn').hidden=true}
+function edit(s){ED=s.id;$('n').value=s.name;$('bg').value=s.bg||'auto';$('sz').value=s.size||64;$('r').value=s.rotate||0;$('t').value=s.cond.type;$('v').value=s.cond.value;$('h').value=s.howto||'';
+ const f=s.fire||{};$('c1').value=f.color||'#ffffff';$('s1').value=f.bulletSpeed||12;$('c2').value=f.rocketColor||'#ff6a00';$('s2').value=f.rocketSpeed||9;$('wl').innerHTML='';(f.weapons||[]).forEach(x=>row(x));
+ $('sv').textContent='💾 Simpan perubahan';$('cn').hidden=false;scrollTo(0,0)}
+async function ld(){K=$('k').value;try{const j=await a('GET','/api/admin/skins');$('f').hidden=false;$('l').innerHTML='';j.skins.forEach(s=>{const d=document.createElement('div');d.className='c';const m=document.createElement(s.type=='video'?'video':'img');m.src=s.file;m.muted=m.loop=m.autoplay=true;
+ const t=document.createElement('span');t.textContent=s.name+' — '+s.cond.type+' ≥ '+s.cond.value+' — '+((s.fire&&s.fire.weapons&&s.fire.weapons.length)||1)+' senjata';
+ const e=document.createElement('button');e.textContent='✏️';e.onclick=()=>edit(s);const x=document.createElement('button');x.textContent='🗑';x.onclick=async()=>{if(confirm('Hapus '+s.name+'?')){await a('DELETE','/api/admin/skins/'+s.id);ld()}};d.append(m,t,e,x);$('l').append(d)})}catch(e){alert('Gagal: '+e)}}
 </script>
