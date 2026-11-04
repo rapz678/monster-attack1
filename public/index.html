@@ -792,16 +792,16 @@ function draw() {
         ctx.fillStyle = '#fff'; ctx.shadowBlur = 0; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.fillText("⚡", b.x + b.w/2, b.y + 16);
     });
 
-    ctx.fillStyle = player.color; ctx.shadowBlur = isBoosted ? 25 : 15; ctx.shadowColor = isBoosted ? '#ff1493' : player.color;
-    drawShip();
-    
-    ctx.shadowBlur = 15; ctx.shadowColor = '#ff4500'; ctx.fillStyle = '#ff4500';
-    ctx.beginPath(); ctx.moveTo(player.x + 10, player.y + player.height); ctx.lineTo(player.x + player.width - 10, player.y + player.height);
-    ctx.lineTo(player.x + player.width/2, player.y + player.height + 10 + Math.random() * 15); ctx.fill(); ctx.shadowBlur = 0; 
-
     ctx.shadowBlur = 8;
     bullets.forEach(b => { ctx.fillStyle = b.color || (isBoosted ? '#ff1493' : '#fff'); ctx.shadowColor = b.color || (isBoosted ? '#ff1493' : '#1e90ff'); ctx.fillRect(b.x, b.y, b.w, b.h);
         if (b.rocket) { ctx.fillStyle = '#fff'; ctx.fillRect(b.x + 2, b.y, b.w - 4, 5); ctx.fillStyle = '#ffd24a'; ctx.fillRect(b.x + 2, b.y + b.h, b.w - 4, 6 + Math.random() * 8); } });
+    ctx.fillStyle = player.color; ctx.shadowBlur = isBoosted ? 25 : 15; ctx.shadowColor = isBoosted ? '#ff1493' : player.color;
+    drawShip();
+    
+    if (!(skinEl && (skinEl.videoWidth || skinEl.naturalWidth))) { ctx.shadowBlur = 15; ctx.shadowColor = '#ff4500'; ctx.fillStyle = '#ff4500';
+    ctx.beginPath(); ctx.moveTo(player.x + 10, player.y + player.height); ctx.lineTo(player.x + player.width - 10, player.y + player.height);
+    ctx.lineTo(player.x + player.width/2, player.y + player.height + 10 + Math.random() * 15); ctx.fill(); ctx.shadowBlur = 0; } ctx.shadowBlur = 0;
+
 
     enemies.forEach(drawEnemyShip);
 
