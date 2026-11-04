@@ -177,6 +177,12 @@
 #skin-info{font-size:12px;color:#00fbff;margin-top:12px;min-height:34px}
 #badge-grid{max-height:45vh;overflow-y:auto}
 @media(max-width:480px){.stat-box{padding:6px 10px;font-size:13px}}
+.lg-in{width:80%;max-width:300px;padding:12px;margin:6px 0;background:rgba(0,0,0,.5);border:2px solid #00fbff;border-radius:10px;color:#fff;font-size:18px;text-align:center;box-sizing:border-box}
+.lg-row{display:flex;gap:10px;margin:6px 0}.lg-row .play-btn{padding:12px 18px;font-size:18px;margin:0}
+#login-msg{color:#ff6b6b;font-size:13px;min-height:18px;margin:8px 0;font-family:sans-serif}
+#name-screen{overflow-y:auto;justify-content:flex-start}#name-screen>*{flex-shrink:0}#name-screen>h2{margin-top:auto}#name-screen>*:last-child{margin-bottom:auto}#name-screen p{margin-bottom:16px}#name-screen .skin-btn{margin:6px 0}
+#g-btn{min-height:44px;margin:6px 0;display:flex;justify-content:center}
+.tabb{width:50%;font-size:15px;padding:8px;margin:0}
 </style>
 </head>
 <body>
@@ -196,10 +202,15 @@
     </div>
 
     <div id="name-screen">
-        <h2>IDENTITAS PILOT</h2>
-        <p>Nama ini harus UNIK (Tidak boleh sama dengan pemain lain di Leaderboard).</p>
-        <input type="text" id="player-name-input" placeholder="NAMA KAMU..." maxlength="12" autocomplete="off">
-        <button class="play-btn" style="margin-top:30px;" onclick="saveNameAndProceed()">KONFIRMASI</button>
+        <h2>MASUK PILOT</h2>
+        <p>Masuk supaya skor, koin, dan skinmu tersimpan di akun.</p>
+        <input class="lg-in" id="lg-name" placeholder="NAMA PILOT" maxlength="12" autocomplete="username">
+        <input class="lg-in" id="lg-pass" type="password" placeholder="SANDI (min 4 karakter)" autocomplete="current-password">
+        <div class="lg-row"><button class="play-btn" onclick="passLogin()">MASUK</button><button class="play-btn" onclick="passRegister()">DAFTAR</button></div>
+        <div id="login-msg"></div>
+        <button class="skin-btn" onclick="guestLogin()">👤 MAIN SEBAGAI TAMU</button>
+        <div id="g-btn"></div>
+        <button class="skin-btn" onclick="fbLogin()">📘 MASUK DENGAN FACEBOOK</button>
     </div>
 
     <div id="start-screen">
@@ -211,7 +222,8 @@
         <button id="load-btn" class="load-btn" style="display:none;" onclick="loadGame()">📂 MUAT GAME</button>
         <button class="leaderboard-btn" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
         <button class="badge-menu-btn" onclick="showBadges()">🏅 LENCANA</button>
-        <button class="skin-btn" onclick="showSkins()">🚀 SKIN</button>
+        <button class="skin-btn" onclick="showSkins()">🚀 SKIN & AURA</button>
+        <button class="skin-btn" onclick="showAcc()">👤 AKUN</button>
     </div>
 
     <div id="pause-screen">
@@ -234,7 +246,7 @@
     </div>
 
     <div id="leaderboard-modal" class="modal-box">
-        <h3>🏆 RANKING GLOBAL 🏆</h3>
+        <h3>🏆 RANKING MINGGUAN 🏆</h3>
         <div id="leaderboard-list"></div>
         <button class="close-btn" onclick="hideLeaderboard()">TUTUP</button>
     </div>
@@ -246,10 +258,22 @@
         <button class="close-btn" onclick="hideBadges()">TUTUP</button>
     </div>
 
+    <div id="acc-modal" class="modal-box">
+        <h3>👤 AKUN</h3>
+        <div id="acc-info" style="margin:12px 0;font-size:14px"></div>
+        <button class="skin-btn" style="width:100%" onclick="renameAcc()">✏️ GANTI NAMA</button><br><br>
+        <button class="skin-btn" style="width:100%" onclick="setPw()">🔑 ATUR SANDI</button><br><br>
+        <button class="skin-btn" style="width:100%;border-color:#ff4d4d;color:#ff4d4d" onclick="logout()">🚪 KELUAR</button>
+        <button class="close-btn" onclick="$('acc-modal').style.display='none'">TUTUP</button>
+    </div>
+
     <div id="skin-modal" class="modal-box">
-        <h3>🚀 SKIN PESAWAT</h3>
+        <h3>🚀 SKIN & AURA</h3>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="skin-btn tabb" id="tab-skin" onclick="setTab('skin')">🚀 SKIN</button><button class="skin-btn tabb" id="tab-aura" onclick="setTab('aura')">✨ AURA</button></div>
+        <div id="shop-coin" style="margin-top:8px;color:#ffd700"></div>
         <div id="skin-grid"></div>
-        <div id="skin-info">Sentuh skin untuk memilih / melihat cara mendapatkannya</div>
+        <div id="skin-info">Sentuh untuk memilih / melihat cara mendapatkannya</div>
+        <button id="shop-buy" class="close-btn" style="display:none"></button>
         <button class="close-btn" onclick="hideSkins()">TUTUP</button>
     </div>
 
@@ -257,7 +281,7 @@
         <div class="stat-box skor-box">🏆 <span id="score">0</span></div>
         <div class="stat-box hp-box">❤️ <span id="lives">3</span></div>
         <div class="stat-box">⏱ <span id="timer">00:00</span></div>
-        <div class="stat-box" style="position:absolute;top:50px;left:0;padding:5px 14px;font-size:14px">💀 <span id="kills">0</span> <small style="opacity:.7">/ <span id="killsAll">0</span> total</small></div>
+        <div class="stat-box" style="position:absolute;top:50px;left:0;padding:5px 14px;font-size:14px">💀 <span id="kills">0</span> <small style="opacity:.7">/ <span id="killsAll">0</span> total</small> &nbsp;🪙 <span id="coins">0</span></div>
         <button id="pause-btn" class="pause-btn-ingame" onclick="togglePause()">⏸ JEDA</button>
     </div>
     
@@ -273,94 +297,145 @@ let isHighScoreNotified = false;
 
 // ===== ONLINE LEADERBOARD, STATISTIK, SKIN =====
 const $=id=>document.getElementById(id), API_BASE=''; // isi URL server jika game di-host terpisah dari server
-const stats=Object.assign({kills:0,shots:0,ms:0,games:0,bosses:0,heals:0,power:0,best:0},JSON.parse(localStorage.getItem('spaceStats')||'{}'));
+const stats=Object.assign({kills:0,shots:0,ms:0,games:0,bosses:0,heals:0,power:0,best:0,coins:0},JSON.parse(localStorage.getItem('spaceStats')||'{}'));
 const saveStats=()=>localStorage.setItem('spaceStats',JSON.stringify(stats));
 setInterval(()=>{if(gameRunning)saveStats()},5000); addEventListener('pagehide',saveStats);
 const fmtT=ms=>String(Math.floor(ms/60000)).padStart(2,'0')+':'+String(Math.floor(ms/1000)%60).padStart(2,'0');
 let playMs=0,lastTick=0,token=localStorage.getItem('spaceToken')||'';
+let accId=localStorage.getItem('spaceAccId')||'',prov=localStorage.getItem('spaceProv')||'',cfg={google:'',facebook:''};
 async function api(p,o={}){const c=new AbortController(),t=setTimeout(()=>c.abort(),8000);
   try{const r=await fetch(API_BASE+p,{...o,signal:c.signal,headers:{'Content-Type':'application/json'}});const j=await r.json().catch(()=>({}));j._s=r.status;return j}finally{clearTimeout(t)}}
-async function register(name){try{const j=await api('/api/register',{method:'POST',body:JSON.stringify({name})});
-  if(j.token){token=j.token;localStorage.setItem('spaceToken',token);return 'ok'} if(j._s==409)return 'taken'}catch(e){} return 'off'}
-async function saveNameAndProceed(){
-  const v=$('player-name-input').value.trim();
-  if(!v){alert("Pilot, masukkan namamu untuk memulai misi!");return}
-  if(!/^[\p{L}\p{N}_\-. ]{1,12}$/u.test(v)){alert("Nama hanya boleh huruf, angka, spasi, _ - .");return}
-  if(v.toLowerCase()!==globalPlayerName.toLowerCase()||!token){
-    const r=await register(v);
-    if(r=='taken'){alert("Nama '"+v+"' sudah dipakai oleh pilot lain! Silakan pilih nama unik lainnya.");return}
-    if(r!='ok'){token='';localStorage.removeItem('spaceToken')}
-  }
-  globalPlayerName=v; localStorage.setItem('spacePlayerName',v);
-  const n=$('name-screen'); n.style.opacity='0'; setTimeout(()=>{n.style.display='none';showStartMenu()},500);
-}
-function forceRename(){alert("Nama pilotmu sudah dipakai pilot lain di server. Silakan pilih nama baru.");
-  globalPlayerName='';token='';localStorage.removeItem('spacePlayerName');localStorage.removeItem('spaceToken');
-  $('start-screen').style.display='none';const n=$('name-screen');n.style.display='flex';setTimeout(()=>n.style.opacity='1',50)}
-// Skor disimpan di antrean lokal, dikirim ke server saat online
-function updateLeaderboard(sc){stats.best=Math.max(stats.best,sc);saveStats();skinCheck();
-  if(sc>0)localStorage.setItem('spacePending',Math.max(sc,+localStorage.getItem('spacePending')||0)); flush()}
-async function flush(){const sc=+localStorage.getItem('spacePending')||0; if(!sc||!navigator.onLine||!globalPlayerName)return;
-  try{ if(!token){const r=await register(globalPlayerName); if(r=='taken')return forceRename(); if(r!='ok')return}
-    const j=await api('/api/score',{method:'POST',body:JSON.stringify({name:globalPlayerName,token,score:sc})});
-    if(j._s==404){token='';localStorage.removeItem('spaceToken');return flush()}
-    if(j._s==403)return forceRename();
-    if(j.ok)localStorage.removeItem('spacePending')}catch(e){}}
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b)}), authed=()=>({id:accId,token});
+const errText=e=>({nama_tidak_valid:'Nama hanya huruf/angka/spasi/_-. (maks 12)',nama_dipakai:'Nama sudah dipakai pilot lain',sandi_pendek:'Sandi minimal 4 karakter',akun_tidak_ada:'Nama atau sandi salah',token_tidak_valid:'Login gagal, coba lagi',terlalu_cepat:'Terlalu banyak percobaan, tunggu sebentar',google_belum_aktif:'Login Google belum diaktifkan admin',facebook_belum_aktif:'Login Facebook belum diaktifkan admin',sesi_tidak_valid:'Sesi berakhir, masuk lagi'}[e]||('Gagal: '+e));
+function setSession(j){accId=j.id;token=j.token;globalPlayerName=j.name;prov=j.prov||'';localStorage.setItem('spaceAccId',accId);localStorage.setItem('spaceToken',token);localStorage.setItem('spacePlayerName',globalPlayerName);localStorage.setItem('spaceProv',prov)}
+const lmsg=t=>$('login-msg').textContent=t||'';
+function loadScript(src){return new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.async=true;e.onload=ok;e.onerror=no;document.head.append(e)})}
+async function showLogin(){const n=$('name-screen');n.style.display='flex';setTimeout(()=>n.style.opacity='1',100);lmsg('');
+  try{cfg=await api('/api/config')}catch(e){}
+  const g=$('g-btn');g.textContent='';
+  if(cfg.google){try{await loadScript('https://accounts.google.com/gsi/client');google.accounts.id.initialize({client_id:cfg.google,callback:r=>doAuth({mode:'google',cred:r.credential})});google.accounts.id.renderButton(g,{theme:'filled_black',size:'large',text:'signin_with'})}catch(e){}}
+  else{const b=document.createElement('button');b.className='skin-btn';b.textContent='🔵 MASUK DENGAN GOOGLE';b.onclick=()=>lmsg(errText('google_belum_aktif'));g.append(b)}
+  if(cfg.facebook){try{await loadScript('https://connect.facebook.net/en_US/sdk.js');FB.init({appId:cfg.facebook,version:'v19.0',cookie:false,xfbml:false})}catch(e){}}}
+async function doAuth(body){lmsg('Menghubungkan...');
+  try{const j=await post('/api/auth',body);if(j.token){setSession(j);lmsg('');await pullProfile(true);$('name-screen').style.display='none';showStartMenu();flush();return 'ok'}lmsg(errText(j.error));return 'err'}
+  catch(e){lmsg('Tidak bisa terhubung ke server.');return 'off'}}
+const passLogin=()=>doAuth({mode:'login',name:$('lg-name').value.trim(),password:$('lg-pass').value});
+const passRegister=()=>doAuth({mode:'register',name:$('lg-name').value.trim(),password:$('lg-pass').value});
+async function guestLogin(){const r=await doAuth({mode:'guest'});
+  if(r=='off'){globalPlayerName='Tamu'+Math.floor(1000+Math.random()*9000);accId='';token='';prov='guest';localStorage.setItem('spacePlayerName',globalPlayerName);localStorage.setItem('spaceProv','guest');localStorage.removeItem('spaceAccId');localStorage.removeItem('spaceToken');$('name-screen').style.display='none';showStartMenu()}}
+function fbLogin(){if(!cfg.facebook||!window.FB)return lmsg(errText('facebook_belum_aktif'));FB.login(r=>{if(r.authResponse)doAuth({mode:'facebook',cred:r.authResponse.accessToken});else lmsg('Login Facebook dibatalkan')},{scope:'public_profile'})}
+function sessionLost(){alert('Sesi login berakhir. Silakan masuk lagi.');['spaceAccId','spaceToken','spacePlayerName'].forEach(k=>localStorage.removeItem(k));accId='';token='';globalPlayerName='';$('start-screen').style.display='none';showLogin()}
+// ---- profil tersimpan di akun (sinkron antar HP)
+function persistAll(){saveStats();localStorage.setItem('spaceBadges',JSON.stringify(badgesEarned));localStorage.setItem('spaceSkinOwned',JSON.stringify(skinOwned));localStorage.setItem('spaceSkin',skinSel);localStorage.setItem('spaceAura',auraSel)}
+const profile=()=>({ts:+localStorage.getItem('spaceTs')||0,stats,badges:badgesEarned,owned:skinOwned,skin:skinSel,aura:auraSel});
+function applyProfile(d){Object.assign(stats,{kills:0,shots:0,ms:0,games:0,bosses:0,heals:0,power:0,best:0,coins:0},d.stats||{});badgesEarned=d.badges||{};skinOwned=d.owned||[];skinSel=d.skin||'default';auraSel=d.aura||'';
+  persistAll();localStorage.setItem('spaceTs',d.ts||0);localStorage.setItem('spaceKS',stats.kills);renderBadgesUI();applySkin();applyAura()}
+let syncT=0;function touch(){localStorage.setItem('spaceTs',Date.now());clearTimeout(syncT);syncT=setTimeout(pushProfile,3000)}
+async function pushProfile(){if(!accId||!token||!navigator.onLine)return;try{const j=await post('/api/pput',{...authed(),data:profile()});if(j._s==401)sessionLost()}catch(e){}}
+async function pullProfile(login){if(!accId||!token||!navigator.onLine)return;try{const j=await post('/api/pget',authed());if(j._s==401)return sessionLost();
+  if(j.data&&(login||(j.data.ts||0)>(+localStorage.getItem('spaceTs')||0)))applyProfile(j.data);else if(!j.data)pushProfile()}catch(e){}}
+// ---- menu akun
+const PV={guest:'Tamu',pass:'Sandi',google:'Google',facebook:'Facebook'};
+function showAcc(){$('acc-info').textContent='👤 '+globalPlayerName+' · '+(PV[prov]||'Lokal')+' · 🪙 '+stats.coins+(accId?'':' · belum tersambung ke server');$('acc-modal').style.display='block'}
+async function renameAcc(){if(!accId)return alert('Hubungkan ke internet dulu, lalu coba lagi.');const n=prompt('Nama baru (maks 12 karakter):',globalPlayerName);if(!n||n.trim()==globalPlayerName)return;
+  try{const j=await post('/api/rename',{...authed(),name:n.trim()});if(j.ok){globalPlayerName=j.name;localStorage.setItem('spacePlayerName',j.name);$('welcome-text').innerText='SELAMAT DATANG, '+j.name+'!';showAcc()}else if(j._s==401)sessionLost();else alert(errText(j.error))}catch(e){alert('Tidak bisa terhubung ke server.')}}
+async function setPw(){if(!accId)return alert('Hubungkan ke internet dulu, lalu coba lagi.');const p=prompt('Sandi baru (minimal 4 karakter):');if(!p)return;
+  try{const j=await post('/api/setpw',{...authed(),password:p});alert(j.ok?'Sandi disimpan. Kamu bisa masuk dengan nama + sandi ini di HP lain.':errText(j.error))}catch(e){alert('Tidak bisa terhubung ke server.')}}
+async function logout(){if(!confirm('Keluar dari akun ini?'+(prov=='guest'?'\nAkun tamu tanpa sandi TIDAK bisa dimasuki lagi. Atur sandi dulu kalau mau menyimpannya.':'')))return;
+  try{await pushProfile();if(accId)await post('/api/logout',authed())}catch(e){}localStorage.clear();location.reload()}
+// ---- skor mingguan (antrean lokal, dikirim saat online)
+function updateLeaderboard(sc){stats.best=Math.max(stats.best,sc);saveStats();skinCheck();touch();
+  let p=null;try{p=JSON.parse(localStorage.getItem('spacePending')||'null')}catch(e){}if(!p||typeof p!='object')p={score:+p||0,kills:0};
+  p.score=Math.max(p.score,sc);p.kills+=Math.max(0,stats.kills-(+localStorage.getItem('spaceKS')||0));localStorage.setItem('spaceKS',stats.kills);p.rid=Math.random().toString(36).slice(2)+Date.now();
+  if(p.score>0||p.kills>0)localStorage.setItem('spacePending',JSON.stringify(p));flush()}
+async function flush(){let p=null;try{p=JSON.parse(localStorage.getItem('spacePending')||'null')}catch(e){}if(!p||typeof p!='object'||!navigator.onLine||!globalPlayerName)return;
+  try{if(!accId||!token){let r=await post('/api/auth',{mode:'guest',name:globalPlayerName});if(!r.token&&r.error=='nama_dipakai')r=await post('/api/auth',{mode:'guest'});if(!r.token)return;setSession(r);pushProfile()}
+    const j=await post('/api/score',{...authed(),score:p.score,kills:p.kills,rid:p.rid});if(j._s==401)return sessionLost();if(j.ok)localStorage.removeItem('spacePending')}catch(e){}}
 function renderLeaderboard(j){const l=$('leaderboard-list');l.textContent='';
-  const row=(r,n,s)=>{const d=document.createElement('div');d.className='rank-item '+(r<4?'rank-'+r:'rank-other');
+  const ms=Math.max(0,(j.resetAt||0)-Date.now()),hd=document.createElement('div');hd.style.cssText='font-size:12px;color:#ffd700;margin-bottom:8px';hd.textContent='⏳ Reset Senin 00:00 WIB — '+Math.floor(ms/864e5)+' hari '+Math.floor(ms%864e5/36e5)+' jam lagi';l.append(hd);
+  const row=(r,n,sc,k)=>{const d=document.createElement('div');d.className='rank-item '+(r<4?'rank-'+r:'rank-other');
     const a=document.createElement('span');a.textContent=(['','👑','🥈','🥉'][r]||'🏅')+' '+r+'. '+n;if(n==globalPlayerName)a.style.color='#00fbff';
-    const b=document.createElement('span');b.textContent=s;d.append(a,b);return d};
-  j.top.forEach((p,i)=>l.append(row(i+1,p.name,p.score)));
-  if(!j.top.length)l.textContent='Belum ada skor. Jadilah yang pertama!';
-  if(j.me&&j.me.rank>20)l.append(row(j.me.rank,globalPlayerName,j.me.score))}
+    const b=document.createElement('span');b.textContent=sc+' · 💀'+k;d.append(a,b);return d};
+  j.top.forEach((p,i)=>l.append(row(i+1,p.name,p.score,p.kills)));
+  if(!j.top.length)l.append('Belum ada skor minggu ini. Jadilah yang pertama!');
+  if(j.me&&j.me.rank>20)l.append(row(j.me.rank,globalPlayerName,j.me.score,j.me.kills))}
 async function showLeaderboard(){
-  if(!navigator.onLine){alert("Koneksi Internet terputus! Sambungkan ke Internet untuk melihat Leaderboard Global.");return}
+  if(!navigator.onLine){alert("Koneksi Internet terputus! Sambungkan ke Internet untuk melihat Leaderboard.");return}
   $('leaderboard-list').textContent='Memuat...'; $('leaderboard-modal').style.display='block';
-  try{await flush();const j=await api('/api/leaderboard?name='+encodeURIComponent(globalPlayerName));if(!j.top)throw 0;renderLeaderboard(j)}
+  try{await flush();const j=await api('/api/leaderboard?id='+encodeURIComponent(accId));if(!j.top)throw 0;renderLeaderboard(j)}
   catch(e){hideLeaderboard();alert("Tidak bisa terhubung ke server. Coba lagi nanti.")}}
-// ---- SKIN (daftar dari server, di-cache agar bisa dipakai offline)
-let skins=JSON.parse(localStorage.getItem('spaceSkinList')||'[]'),skinOwned=JSON.parse(localStorage.getItem('spaceSkinOwned')||'[]'),skinSel=localStorage.getItem('spaceSkin')||'default',skinEl=null,skinRot=0;
-const nb=()=>Object.values(badgesEarned).filter(Boolean).length;
-const CT={free:['Gratis',()=>1],score:['Raih skor {v} dalam sekali main',()=>stats.best],kills:['Kalahkan {v} musuh (total)',()=>stats.kills],bosses:['Kalahkan {v} boss (total)',()=>stats.bosses],playtime:['Main total {v} menit',()=>Math.floor(stats.ms/60000)],games:['Main {v} kali',()=>stats.games],badges:['Kumpulkan {v} lencana',nb]};
-function skinCheck(){let n=0;skins.forEach(s=>{const c=CT[s.cond.type]||CT.free;
-  if(!skinOwned.includes(s.id)&&c[1]()>=s.cond.value){skinOwned.push(s.id);n++;badgeNotification={text:'SKIN TERBUKA: '+s.name,time:Date.now()+4000};cacheSkin(s)}});
-  if(n)localStorage.setItem('spaceSkinOwned',JSON.stringify(skinOwned))}
-async function cacheSkin(s){if(!skinOwned.includes(s.id)||!window.caches)return;try{const c=await caches.open('skins');if(!await c.match(API_BASE+s.file))await c.add(API_BASE+s.file)}catch(e){}}
-async function skinURL(s){try{const m=window.caches&&await caches.match(API_BASE+s.file);if(m)return URL.createObjectURL(await m.blob())}catch(e){}return API_BASE+s.file}
-async function applySkin(){skinEl=null;skinCfg=null;skinStatic=null;const s=skins.find(x=>x.id==skinSel&&skinOwned.includes(x.id));if(!s)return;skinCfg=s;skinRot=s.rotate;const u=await skinURL(s);let e;
-  if(s.type=='video'){e=document.createElement('video');e.muted=e.loop=e.playsInline=true;e.onloadeddata=()=>{skinEl=e;e.play().catch(()=>{})}}else{e=new Image();e.onload=()=>{skinStatic=null;skinEl=e}}
-  e.src=u}
-async function loadSkins(){try{const j=await api('/api/skins');if(j.skins){skins=j.skins;localStorage.setItem('spaceSkinList',JSON.stringify(skins));skinCheck();skins.forEach(cacheSkin);applySkin()}}catch(e){}}
 const EN={body:new Image(),eyes:new Image(),c:document.createElement('canvas')};EN.c.width=50;EN.c.height=57;EN.body.src="data:image/png;base64,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";EN.eyes.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAA5CAYAAAB0+HhyAAAMaklEQVR42s2aW3BV13nHf9/aex/pCOtuMAIE4pYSFyLimcSOA6GTZJjOdPqYBmzj5L3NtG9+7FvbTKYzCSC3r57xpTaTTKfTxmPslEti6kxaSwIBUgCdm47OkQS6ouvZe3192FtbOugICbCBNXMezr6stf7f5f9d1oZ1jBOZN3lS41jmFLKO58xaDziAjz4REAIgZtmfRwDyg9xJhIAtb3z3sQPZ+vdHEQKOZU8jah4NCED/2a4nZlrps1dA5VFNy2BLkMDgrQ/zFzrc6hoEC4CuYV333d0rmZ+TFEOgdj1C+cKHnZiM3CPgRPrkw2lEMKjAjd908qRH+uNufBHu5yar3no1fRJR5wnxVQX2VOWV1MmHM61/+9E/4DwlSM68/jOc+6jkvkBMoFh5OoAISiDyYEB+nPr52hHoCY3XUr9YP5AF4/LO6/9IYOxTBaL/ky50FSNacfW1zElUwLMWx5qnCohrLWqEVzId69CIOmTOdgL2qTStzCddWBOsz7SMlt8KHV7Y8cb3H9uG2974/nozqJVATqQ6CCr4uIhQJwn8x2hpVoQqJ1GZwdRwItWxOpDAQObjz+P/1VrNpZ+eCS3uSZCYKJ54XPqnDyIrAVUl81H3iv24cQGT7QDV2JQ2791OsADTxdvrrh00ql/+7qWXNTCrSRpOfnpJFp9fawTGgkLDnpY4pjlqQQJeS53i7Z0/iTQi4eKKzy9P/Cxmqme2NrOpdfMamzfLah7D8dZt/O2hl9UXhaYmqfQTqxzfsZ1jra1xpJJ1+EJdy0ZMtLfAwK9e/WccJJ7DddRwLHsaVR9QSg5IJKqb3dcRBccSq3b5xg2WH2xvjZ8HKDU1iXMfwpPmZtn0bDPDXd0ca20FFBXh/Wx+UWdLmlLBsU5EQDYmIt9YBKVkLMczHby7469D0zIKhf/qQYCutz7ihde/t2QKKL/96Qfs++Fh0CgrxnK8dSsqIKo8135wme2sy/R5rr099r2h7m6OtW4B4IPcAIvkeuPMeW4ETtm7uT/0MdSbxTph0dV29OCisxscSpQ8w/YX95VTryts2FQf2qUFz/oolmORFjZ/rb0cxMP5czTPCwjwV62tCAbXAmpAoGZjXXnOp8LOb+xb9CIEcI+nf4GvSlCaA8dgBRx1CFSRhDItCxhr+No7VwB4aXsrosqmgwe/aMJlU/tBhrq7ONa6Fd7r5UUaeS8xznwk14Q1lEoBKor1DEio/lcG3kReS5/m1iedsdP871tnERF2vfQ8jhF8Ay+8fRWA57/zHQK1jEWV25c1mmvr6OzuIjl1F2MS/OHVryACmYuXCcTBWJ+v//jPoxLYsO1oe2RDuuStew4dwFFIfXaNW59dR3F4N5fl3Wz2sYeRd3JZ3s70A5C90IMVw8Zdm9l5uD1+ZixbpMpWyAGshL+5/DB+dpS+987h7KhbsUhTXX0Zkz3sUAnJpqmunsa6+hX3va/U0/v+p0wPjmIUirdylRNKxDKSKfDsxibMhmqaW7fgfRP6fncFz3GpcgzTgyMh+rExZmZmaNz0LKC0jN3RebeWhZYmmZy+S01NDbOzs6jeH2FNTQ3WWubm5qitrqF+IK+z9XUiYngmWUOhUFgqKQKfZ1o2oqrs/cYBErUJqjY3EKCMpvOohn5tLA43xwaoqt0QSshTAg8cF9QEBOLHLDY9PY2qUu144Ybm50lO38ExAqJUuy5WgzW1kPQ8PCec06lyqVmYjdRjSXguFl0Shgq+8bHio64leMYl8MJ7jm946Ud/iVEw77b9BCNaFtQAdh06gNdQg/g2DoL/euF82TN9qgxIlP/c7F9TE+VJnpC5dQvHwh8rvPfv1/uilqkgVtl+5ACleyJtYOCtUx28vfNvMKIWK+WuUr87DHaLr6kG6O5aUBgaGqKzs7MsvypjnLoGmurqVgXQVFe3AvCirzmOQ2dnJ0NDQ+G6u2vjCCsKzTu3UtW44R4nM6CLSaNC8dZASGYaOrtBaN2/CxyX9LlOZgpjYY8pn6NtayuDg4N4hSLzItKwZ+8jVH3gF4sM1tdjTCjQVD506A2bGrAO7DrUjqpltD8fxpCIIMyyvoK7KFrHGlQsRsPJVRXUJSkerjiIMSigy14Wtbjiqud5Urk4I47IRmGF/QKa8FaUCRIFSLGK47qYQEAEawTXWkSh5FAW7eM0/up0lufr2+i/0BXS7+AYWEWQMKdaVHHUklk0Dwl88vkcokIikcD3fVSVhvo6RITbE2M01TeUYVBddGZhIJcON2EVjdALLgpMj0yAEa788lxYH21rigxI2Hu4nd6JdLngzKkroNB/8fMYZXJzA8ktjSRbGspENX53GoDh4eG4NvjqxF31DaTT6RgoQD6fp7mugbmZWQYHB+PrhUKBfD5PILB/ckoX5ysWiyHNT0/FelfVcB9bGst6XDd+9zlWDPIvPUsasWFaS9vhr+NqEDfCqvDou/B/1GxpZCY/utSWGcixa1srAPOOK73W16MbknrlAZphGwn0m9VJruoSE4lx6M9lIroP2P3tA+TSOVBoO3IwTuVjK7qbRwNbXuoahd7JHAQGsYpYxcfnT148gKpS29wYm8ei1IddTyaM4mIwgTI6epuRkZGYdSqNoaEh7ty5w/TkFEGUuQ67jiw315gvqzwchH3fakdsEJukL8rV6RywsLJmt6cvYyyoLKG21rKQCH20VG1QDKkgiM1vwnGZMh6IYrCUfGWh5DOvdtWydcFa5oOABYsYDV100rhlKVIqCIPqfGmBBRsw79pKk8HJayudfXnuc+/YefgAVz+4CHs2wM0pZibnSOkALY3NqIRsdg3h6IYqZXwMFbizuUUA8oVBljPjwckJDWqqmcFwzQaxLabyA2Bc7k7NhNvalcS4wr7D7evqsJlKQO9NIq+e+S2I4AYhc9+kxPjMTJjUCWgxj2Dps2Aj6d7pva6yfAs2YOz6dQW4pcJQEIBYNCKB8ZkZJicn6beK4INYsueu0PP+uQqxR+8PxFHoH6+crm85egA/UUL3hhE+7Qf0DmToy2URK+hgEVS4YUtxyrHoK8PFIW6PjGAlSkfUIvMLkC9igN6BHBCQsaFJ6Z4NtHzvAJqwFSvKq1MFHPVXB1J6swtb1mE0uPfamgX21AKGVCAYq1CdxDUGTQDOUrNAMTFBzGsQL17lGFwEV1wCNwzEGR8CDLI7SdnRlHHDeLZcCWIJOnrWapkuXaqywq1LPeXiiCI6e5IAXDcu/zGQkesJT5x0ATcINxsUhsu0Uq2GUjG8VsoVKExNyB89R/6zUJSML6gYZFctGuV9ca2jSv//XL2vD6/a+702NUj299fovdSNqrLvh0fAKoktz5FsaQhb+2pwjjyHqk/GF3xx6E16Mjt4G1sY5Ea1J8sPZkQd+r0asYVBemqMjIlDIKFWFXCObAwZUyHZUocaYet329l/PDzfT33agxXom8yuD4jtuIzBRyWky13f3h8HIhW7LL+xIbtoeP2TVAqxQibhyc1EUlCDo0r/QJaR8VF8oyy4ys1EUlxrmFyY5cNsOprHlp17SFQsiQq++ux+eX/cyQnEIKeurQ1EsfFXBq4YVJXR0dE4MwWoaQlznuaNTYsvocCvsxnUW+pD9ecyiBhmpmdJ53O4Uc11LZflYnFkZQ3gKrWbm+JYFgQB43dGo/6ZxISk+Os/Q5yfn4+juEGw1sZSwfcxrQ3MVSjaf32rP7ZjJ6JiFZa+KQEy9p5OnoDFhZZGStaPBbm49vIA/UBniLbjMjbhrvrSTDKML5NnLlfsT32cTqMiUYJpmJiaZmzqLgBnM+kVmhAFLuYwWOaqzKpNjb6ZQei4vH4gGqmw7Vv7K3Q9bCjdc/lV2+kB8FE6tWL6DzNpglXWw4JeKGLwK54ktx36U2w09wMfT/de6mZ8dKysrJx1zbrOAxTotyW6JicoGZe0rifRsIBhzrNlWhkfHePq77sfLEWJg+P58v7RbHGMKky42PncA5WzOX9+neAVPR925WeGp6hy3HLJnO55cCD3Ljw/OsNsUILo4OVLGRH7WccyMTqBvxBU0NhDmFZ5DQ3BZzn478KX3yv9TQElKHf6NUo2d63keLBvgJoSzCSg7i++yuSvrj+Wvq9ByKRSJBdcZj0LUrn9FCe8950tPQlttXhWCIxl7sP+x9bA1swU7KjHUSEwGrLkw2skHHOefTIfEIhl3mXp8znl0XxErWDPFx4/kHMFkPCs8oshmCPbeFLD/NnWdbVm/h9dRtKFSE8v9gAAAABJRU5ErkJggg==";
 function drawEnemyShip(e){const cx=e.x+e.w/2,cy=e.y+e.h/2,dx=player.x+player.width/2-cx,dy=player.y+player.height/2-cy,d=Math.hypot(dx,dy)||1,g=EN.c.getContext('2d');
   g.clearRect(0,0,50,57);g.drawImage(EN.body,0,0);g.globalCompositeOperation='source-atop';g.drawImage(EN.eyes,Math.round(dx/d*2.2),Math.round(dy/d*2.2));g.globalCompositeOperation='source-over';
   ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(EN.c,cx-30,cy-34,60,68);ctx.restore()}
-let skinCfg=null,skinStatic=null;const skinCv=document.createElement('canvas');
-function skinKey(){const k=(skinCfg&&skinCfg.bg)||'auto';return k=='auto'?((skinCfg&&(skinCfg.type=='video'||/\.jpe?g$/i.test(skinCfg.file)))?'black':'none'):k}
-function skinFrame(w,h){const k=skinKey();if(k=='none')return skinEl;const img=skinEl.tagName=='IMG';if(img&&skinStatic)return skinStatic;
-  const m=Math.min(1,128/Math.max(w,h)),cw=Math.max(1,Math.round(w*m)),ch=Math.max(1,Math.round(h*m)),cv=img?document.createElement('canvas'):skinCv;
-  if(cv.width!=cw)cv.width=cw;if(cv.height!=ch)cv.height=ch;const g=cv.getContext('2d',{willReadFrequently:true});g.clearRect(0,0,cw,ch);g.drawImage(skinEl,0,0,cw,ch);
-  const d=g.getImageData(0,0,cw,ch),p=d.data;
-  for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];let a;
-    if(k=='black')a=(Math.max(r,gg,b)-22)/40;else if(k=='white')a=(235-Math.min(r,gg,b))/40;else a=1-(gg-Math.max(r,b)-25)/40;
-    a=a<0?0:a>1?1:a;p[i+3]=Math.min(p[i+3],a*255)}
-  g.putImageData(d,0,0);if(img)skinStatic=cv;return cv}
+// ---- SKIN & AURA (daftar dari server, di-cache agar bisa dipakai offline)
+let skins=JSON.parse(localStorage.getItem('spaceSkinList')||'[]'),skinOwned=JSON.parse(localStorage.getItem('spaceSkinOwned')||'[]'),skinSel=localStorage.getItem('spaceSkin')||'default',auraSel=localStorage.getItem('spaceAura')||'',
+ skinEl=null,skinRot=0,skinCfg=null,skinHold={s:null,cv:document.createElement('canvas')},auraEl=null,auraCfg=null,auraHold={s:null,cv:document.createElement('canvas')},shopTab='skin';
+const isAura=x=>x.kind=='aura', nb=()=>Object.values(badgesEarned).filter(Boolean).length;
+const CT={free:['Gratis',()=>1],coin:['Beli dengan koin',()=>0],score:['Raih skor {v} dalam sekali main',()=>stats.best],kills:['Kalahkan {v} musuh (total)',()=>stats.kills],bosses:['Kalahkan {v} boss (total)',()=>stats.bosses],playtime:['Main total {v} menit',()=>Math.floor(stats.ms/60000)],games:['Main {v} kali',()=>stats.games],badges:['Kumpulkan {v} lencana',nb]};
+function skinCheck(){let n=0;skins.forEach(s=>{if(s.cond.type=='coin')return;const c=CT[s.cond.type]||CT.free;
+  if(!skinOwned.includes(s.id)&&c[1]()>=s.cond.value){skinOwned.push(s.id);n++;badgeNotification={text:(isAura(s)?'AURA':'SKIN')+' TERBUKA: '+s.name,time:Date.now()+4000};cacheSkin(s)}});
+  if(n)localStorage.setItem('spaceSkinOwned',JSON.stringify(skinOwned))}
+function buy(s){if(stats.coins<s.price){$('skin-info').textContent='Koin tidak cukup: 🪙 '+stats.coins+' / '+s.price;return}
+  stats.coins-=s.price;skinOwned.push(s.id);saveStats();localStorage.setItem('spaceSkinOwned',JSON.stringify(skinOwned));cacheSkin(s);touch();renderSkins();$('skin-info').textContent='✔ Berhasil dibeli: '+s.name}
+async function cacheSkin(s){if(!s.file||!skinOwned.includes(s.id)||!window.caches)return;try{const c=await caches.open('skins');if(!await c.match(API_BASE+s.file))await c.add(API_BASE+s.file)}catch(e){}}
+async function skinURL(s){try{const m=window.caches&&await caches.match(API_BASE+s.file);if(m)return URL.createObjectURL(await m.blob())}catch(e){}return API_BASE+s.file}
+async function loadMedia(s,set){const u=await skinURL(s);let e;
+  if(s.type=='video'){e=document.createElement('video');e.muted=e.loop=e.playsInline=true;e.onloadeddata=()=>{set(e);e.play().catch(()=>{})}}else{e=new Image();e.onload=()=>set(e)}
+  e.src=u}
+async function applySkin(){skinEl=null;skinCfg=null;skinHold.s=null;const s=skins.find(x=>!isAura(x)&&x.id==skinSel&&skinOwned.includes(x.id));if(!s)return;skinCfg=s;skinRot=s.rotate;if(s.file)loadMedia(s,e=>{skinHold.s=null;skinEl=e})}
+async function applyAura(){auraEl=null;auraCfg=null;auraHold.s=null;const s=skins.find(x=>isAura(x)&&x.id==auraSel&&skinOwned.includes(x.id));if(!s)return;auraCfg=s;if(s.aura&&s.aura.mode=='media'&&s.file)loadMedia(s,e=>{auraHold.s=null;auraEl=e})}
+async function loadSkins(){try{const j=await api('/api/skins');if(j.skins){skins=j.skins;localStorage.setItem('spaceSkinList',JSON.stringify(skins));skinCheck();skins.forEach(cacheSkin);applySkin();applyAura()}}catch(e){}}
+function keyed(el,c,w,h,H){const k0=(c&&c.bg)||'auto',k=k0=='auto'?((c&&(c.type=='video'||/\.jpe?g$/i.test(c.file||'')))?'black':'none'):k0;if(k=='none')return el;
+  const img=el.tagName=='IMG';if(img&&H.s)return H.s;
+  const m=Math.min(1,128/Math.max(w,h)),cw=Math.max(1,Math.round(w*m)),ch=Math.max(1,Math.round(h*m)),cv=img?document.createElement('canvas'):H.cv;
+  if(cv.width!=cw)cv.width=cw;if(cv.height!=ch)cv.height=ch;const g=cv.getContext('2d',{willReadFrequently:true});g.clearRect(0,0,cw,ch);g.drawImage(el,0,0,cw,ch);
+  const d=g.getImageData(0,0,cw,ch),p=d.data,n=cw*ch,key=new Float32Array(n);
+  for(let i=0;i<n;i++){const r=p[i*4],gg=p[i*4+1],b=p[i*4+2];let a;
+    if(k=='black')a=1-(Math.max(r,gg,b)-22)/40;else if(k=='white')a=1-(235-Math.min(r,gg,b))/40;else a=(gg-Math.max(r,b)-25)/40;
+    key[i]=a<0?0:a>1?1:a}
+  const bg=new Uint8Array(n),st=[],push=i=>{if(!bg[i]&&key[i]>.5){bg[i]=1;st.push(i)}}; // hanya latar yang tersambung ke tepi yang dihapus
+  for(let x=0;x<cw;x++){push(x);push((ch-1)*cw+x)}for(let y=0;y<ch;y++){push(y*cw);push(y*cw+cw-1)}
+  while(st.length){const i=st.pop(),x=i%cw,y=(i-x)/cw;if(x>0)push(i-1);if(x<cw-1)push(i+1);if(y>0)push(i-cw);if(y<ch-1)push(i+cw)}
+  for(let i=0;i<n;i++){let a=255;if(bg[i])a=0;else if(key[i]>0&&((i%cw>0&&bg[i-1])||(i%cw<cw-1&&bg[i+1])||(i>=cw&&bg[i-cw])||(i<n-cw&&bg[i+cw])))a=(1-key[i])*255;p[i*4+3]=Math.min(p[i*4+3],a)}
+  g.putImageData(d,0,0);if(img)H.s=cv;return cv}
+function shipC(){const w=skinEl&&(skinEl.videoWidth||skinEl.naturalWidth),S=w?((skinCfg&&skinCfg.size)||64):0,x=player.x+player.width/2;
+  return S?{x,y:player.y+player.height-S/2,S,sc:S/64}:{x,y:player.y+player.height/2,S:0,sc:1}}
 function drawShip(){const w=skinEl&&(skinEl.videoWidth||skinEl.naturalWidth),h=skinEl&&(skinEl.videoHeight||skinEl.naturalHeight);
   if(!w){ctx.beginPath();ctx.moveTo(player.x+player.width/2,player.y);ctx.lineTo(player.x,player.y+player.height);ctx.lineTo(player.x+player.width,player.y+player.height);ctx.fill();return}
-  const S=(skinCfg&&skinCfg.size)||64,src=skinFrame(w,h),k=Math.min(S/(skinRot%180?h:w),S/(skinRot%180?w:h));
-  ctx.save();ctx.translate(player.x+player.width/2,player.y+player.height-S/2);ctx.rotate(skinRot*Math.PI/180);ctx.drawImage(src,-w*k/2,-h*k/2,w*k,h*k);ctx.restore()}
+  const c=shipC(),src=keyed(skinEl,skinCfg,w,h,skinHold),k=Math.min(c.S/(skinRot%180?h:w),c.S/(skinRot%180?w:h));
+  ctx.save();ctx.translate(c.x,c.y);ctx.rotate(skinRot*Math.PI/180);ctx.drawImage(src,-w*k/2,-h*k/2,w*k,h*k);ctx.restore()}
+function drawAura(){if(!auraCfg)return;const a=auraCfg.aura||{},c=shipC(),t=Date.now()/1000,sz=a.size||50,sp=a.speed||1,n=Math.max(1,a.count||8),c1=a.color||'#00fbff',c2=a.color2||c1,op=a.opacity==null?.8:a.opacity;
+  ctx.save();ctx.shadowBlur=0;ctx.globalAlpha=op;ctx.globalCompositeOperation=a.blend=='normal'?'source-over':'lighter';
+  const pulse=1+(a.pulse||0)*Math.sin(t*4*sp);ctx.translate(c.x,c.y);
+  if(a.mode=='media'){if(auraEl){const w=auraEl.videoWidth||auraEl.naturalWidth,h=auraEl.videoHeight||auraEl.naturalHeight;
+    if(w){const src=keyed(auraEl,auraCfg,w,h,auraHold),k=sz*2*pulse/Math.max(w,h);ctx.rotate((a.spin||0)*t*Math.PI/180);ctx.drawImage(src,-w*k/2,-h*k/2,w*k,h*k)}}}
+  else{const P=a.preset||'glow';
+    if(P=='glow'){const g=ctx.createRadialGradient(0,0,sz*.1,0,0,sz*pulse);g.addColorStop(0,c1);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,sz*pulse,0,7);ctx.fill()}
+    else if(P=='ring'){ctx.rotate(t*sp);ctx.lineWidth=3;ctx.strokeStyle=c1;ctx.setLineDash([12,8]);ctx.beginPath();ctx.arc(0,0,sz*pulse,0,7);ctx.stroke();ctx.rotate(-t*sp*2);ctx.strokeStyle=c2;ctx.beginPath();ctx.arc(0,0,sz*.75*pulse,0,7);ctx.stroke()}
+    else if(P=='star'){ctx.rotate(t*sp);ctx.strokeStyle=c1;ctx.lineWidth=3;ctx.beginPath();for(let i=0;i<=n*2;i++){const r=(i%2?.5:1)*sz*pulse,an=i*Math.PI/n;if(i)ctx.lineTo(Math.cos(an)*r,Math.sin(an)*r);else ctx.moveTo(r,0)}ctx.closePath();ctx.stroke()}
+    else for(let i=0;i<n;i++){const f=i/n,ph=(t*sp*.5+f)%1;ctx.fillStyle=i%2?c2:c1;ctx.globalAlpha=op;ctx.beginPath();
+      if(P=='orbit'){const an=t*sp*2+f*6.283;ctx.arc(Math.cos(an)*sz,Math.sin(an)*sz*.6,4,0,7)}
+      else if(P=='spiral'){const an=t*sp*3+f*6.283,r=ph*sz*1.4;ctx.globalAlpha=op*(1-ph*.6);ctx.arc(Math.cos(an)*r,Math.sin(an)*r,3,0,7)}
+      else if(P=='sparkle'){const an=i*2.399,r=sz*(.3+.7*((i*7)%10)/10),pp=(t*sp+f)%1;ctx.globalAlpha=op*Math.sin(pp*3.1416);ctx.arc(Math.cos(an)*r,Math.sin(an)*r,2+2*pp,0,7)}
+      else{const x=Math.sin(i*12.99)*sz*.4*(1-ph*.5),y=c.S/2+ph*sz*1.3;ctx.globalAlpha=op*(1-ph);ctx.arc(x,y,5*(1-ph)+1,0,7)}
+      ctx.fill()}}
+  ctx.restore()}
+function setTab(t){shopTab=t;renderSkins()}
 function showSkins(){skinCheck();renderSkins();$('skin-modal').style.display='block'}
 function hideSkins(){$('skin-modal').style.display='none'}
-function renderSkins(){const g=$('skin-grid');g.textContent='';
-  [{id:'default',name:'Klasik',cond:{type:'free',value:0}},...skins].forEach(s=>{const own=s.id=='default'||skinOwned.includes(s.id),c=CT[s.cond.type]||CT.free;
-    const d=document.createElement('div');d.className='skin-card'+(skinSel==s.id?' skin-on':'')+(own?'':' skin-lock');let m;
-    if(s.id=='default'){m=document.createElement('div');m.textContent='🔺'}
+function renderSkins(){const g=$('skin-grid');g.textContent='';$('shop-coin').textContent='🪙 '+stats.coins;$('shop-buy').style.display='none';
+  const aura=shopTab=='aura';$('tab-skin').style.opacity=aura?.5:1;$('tab-aura').style.opacity=aura?1:.5;
+  const base=aura?[{id:'',name:'Tanpa aura',kind:'aura',cond:{type:'free',value:0},aura:{mode:'none'}}]:[{id:'default',name:'Klasik',cond:{type:'free',value:0}}];
+  [...base,...skins.filter(x=>isAura(x)==aura)].forEach(s=>{const none=aura?s.id==='':s.id=='default',own=none||skinOwned.includes(s.id),sel=aura?auraSel==s.id:skinSel==s.id,c=CT[s.cond.type]||CT.free;
+    const d=document.createElement('div');d.className='skin-card'+(sel?' skin-on':'')+(own?'':' skin-lock');let m;
+    if(none||!s.file){m=document.createElement('div');m.textContent=none?(aura?'🚫':'🔺'):'✨';if(!none){m.style.cssText='width:56px;border-radius:50%;color:transparent;background:radial-gradient(circle,'+((s.aura&&s.aura.color)||'#0ff')+','+((s.aura&&(s.aura.color2||s.aura.color))||'#00f')+' 70%,transparent)'}}
     else{m=document.createElement(s.type=='video'?'video':'img');m.src=API_BASE+s.file;if(s.type=='video'){m.muted=m.loop=m.playsInline=m.autoplay=true}m.onerror=()=>m.replaceWith('🚀')}
-    const n=document.createElement('div');n.textContent=s.name;const t=document.createElement('div');t.textContent=own?(skinSel==s.id?'DIPAKAI':'PILIH'):'🔒';d.append(m,n,t);
-    d.onclick=()=>{if(own){skinSel=s.id;localStorage.setItem('spaceSkin',s.id);applySkin();renderSkins();$('skin-info').textContent='✔ Skin dipakai: '+s.name}
-      else $('skin-info').textContent='🔒 '+s.name+' — Syarat: '+c[0].replace('{v}',s.cond.value)+' ('+Math.min(c[1](),s.cond.value)+'/'+s.cond.value+')'+(s.howto?'. '+s.howto:'')};
+    const n=document.createElement('div');n.textContent=s.name;const t=document.createElement('div');t.textContent=own?(sel?'DIPAKAI':'PILIH'):(s.price>0?'🪙 '+s.price:'🔒');d.append(m,n,t);
+    d.onclick=()=>{if(own){if(aura){auraSel=s.id;localStorage.setItem('spaceAura',s.id);applyAura()}else{skinSel=s.id;localStorage.setItem('spaceSkin',s.id);applySkin()}touch();renderSkins();$('skin-info').textContent='✔ Dipakai: '+s.name}
+      else{$('skin-info').textContent='🔒 '+s.name+(s.cond.type!='coin'?' — Syarat: '+c[0].replace('{v}',s.cond.value)+' ('+Math.min(c[1](),s.cond.value)+'/'+s.cond.value+')':'')+(s.howto?'. '+s.howto:'');
+        if(s.price>0){const b=$('shop-buy');b.style.display='block';b.textContent='Beli 🪙 '+s.price;b.onclick=()=>buy(s)}}};
     g.append(d)})}
-
 function hideLeaderboard() { document.getElementById('leaderboard-modal').style.display = 'none'; }
 function showTutorial() { document.getElementById('tutorial-modal').style.display = 'block'; }
 function hideTutorial() { document.getElementById('tutorial-modal').style.display = 'none'; }
@@ -384,10 +459,7 @@ window.onload = () => {
         loadingScreen.style.opacity = '0';
         setTimeout(() => {
             loadingScreen.style.display = 'none'; 
-            if (!globalPlayerName) {
-                const nameScreen = document.getElementById('name-screen');
-                nameScreen.style.display = 'flex'; setTimeout(() => { nameScreen.style.opacity = '1'; }, 100);
-            } else { showStartMenu(); }
+            if (!globalPlayerName) { showLogin(); } else { showStartMenu(); pullProfile(); }
         }, 1000); 
     }, 10000); 
 };
@@ -578,22 +650,22 @@ const wcd=[];
 function shoot() {
     const now = Date.now(), f = skinCfg && skinCfg.fire, W = (f && f.weapons && f.weapons.length) ? f.weapons : null;
     if (now - lastPlayerShot <= (isBoosted ? 80 : 200)) return;
-    const cx = player.x + player.width / 2, cy = player.y + player.height / 2;
+    const c = shipC(), cx = c.x, cy = c.y, sc = c.sc, ny = c.S ? cy - c.S / 2 - 8 : player.y;
     const bs = ((f && f.bulletSpeed) || 12) * (isBoosted ? 1.25 : 1), rs = (f && f.rocketSpeed) || 9, col = (f && f.color) || null, rc = (f && f.rocketColor) || '#ff6a00';
     if (W) {
         W.forEach((w, i) => {
             const a = (w.angle || 0) * Math.PI / 180;
             if (w.type === 'rocket') {
                 if (now - (wcd[i] || 0) < (isBoosted ? 400 : 700)) return; wcd[i] = now;
-                bullets.push({ x: cx + w.x - 5, y: cy + w.y - 13, w: 10, h: 26, speedY: Math.cos(a) * rs, speedX: Math.sin(a) * rs, color: rc, rocket: 1, dmg: 3 });
-            } else bullets.push({ x: cx + w.x - 3, y: cy + w.y - 8, w: 6, h: 15, speedY: Math.cos(a) * bs, speedX: Math.sin(a) * bs, color: col });
+                bullets.push({ x: cx + w.x * sc - 5, y: cy + w.y * sc - 13, w: 10, h: 26, speedY: Math.cos(a) * rs, speedX: Math.sin(a) * rs, color: rc, rocket: 1, dmg: 3 });
+            } else bullets.push({ x: cx + w.x * sc - 3, y: cy + w.y * sc - 8, w: 6, h: 15, speedY: Math.cos(a) * bs, speedX: Math.sin(a) * bs, color: col });
             totalShotsFired++; stats.shots++;
         });
     } else if (isBoosted) {
-        [[0, 0, 0], [-12, 10, -2.5], [12, 10, 2.5]].forEach(q => bullets.push({ x: cx + q[0] - 3, y: player.y + q[1], w: 6, h: 15, speedY: bs, speedX: q[2], color: col }));
+        [[0, 0, 0], [-12, 10, -2.5], [12, 10, 2.5]].forEach(q => bullets.push({ x: cx + q[0] - 3, y: ny + q[1], w: 6, h: 15, speedY: bs, speedX: q[2], color: col }));
         totalShotsFired += 3; stats.shots += 3;
     } else {
-        bullets.push({ x: cx - 3, y: player.y, w: 6, h: 15, speedY: bs, speedX: 0, color: col }); totalShotsFired++; stats.shots++;
+        bullets.push({ x: cx - 3, y: ny, w: 6, h: 15, speedY: bs, speedX: 0, color: col }); totalShotsFired++; stats.shots++;
     }
     lastPlayerShot = now;
 }
@@ -611,7 +683,7 @@ function spawnEnemy() {
 function update() {
     if (!gameRunning || isPaused) return; 
     
-    const nw=Date.now(),dt=lastTick?Math.min(nw-lastTick,200):0;lastTick=nw;playMs+=dt;stats.ms+=dt;$('timer').textContent=fmtT(playMs);$('kills').textContent=enemiesKilled;$('killsAll').textContent=stats.kills;
+    const nw=Date.now(),dt=lastTick?Math.min(nw-lastTick,200):0;lastTick=nw;playMs+=dt;stats.ms+=dt;$('timer').textContent=fmtT(playMs);$('kills').textContent=enemiesKilled;$('killsAll').textContent=stats.kills;$('coins').textContent=stats.coins;
     if (keys['arrowleft'] || keys['a']) player.x -= player.speed;
     if (keys['arrowright'] || keys['d']) player.x += player.speed;
     if (keys['arrowup'] || keys['w']) player.y -= player.speed;
@@ -713,7 +785,7 @@ function update() {
                 boss.hp -= (bullets[bi].dmg || 1); createExplosion(bullets[bi].x, bullets[bi].y, true); bullets.splice(bi, 1); bulletHit = true; 
                 hitStreak++; cekHitStreak();
                 if (boss.hp <= 0) {
-                    unlockBadge('b2', 'Boss Slayer'); stats.bosses++;
+                    unlockBadge('b2', 'Boss Slayer'); stats.bosses++; stats.coins += 25;
                     if (boss.level >= 5) unlockBadge('b10', 'Dewa');
                     score += 2000; scoreEl.innerText = score;
                     addFloatingText("BOSS HANCUR!", canvas.width/2, canvas.height/2, "#ffd700");
@@ -732,7 +804,7 @@ function update() {
                     if (dropChance < 0.20) heals.push({ x: e.x + e.w/2 - 10, y: e.y + e.h/2, w: 20, h: 20, speed: 2 });
                     else if (dropChance >= 0.20 && dropChance < 0.35) boostsItems.push({ x: e.x + e.w/2 - 10, y: e.y + e.h/2, w: 20, h: 20, speed: 2 });
                     enemies.splice(ei, 1); bullets.splice(bi, 1); score += 100; scoreEl.innerText = score; 
-                    enemiesKilled++; stats.kills++; hitStreak++; cekHitStreak(); bulletHit = true; break;
+                    enemiesKilled++; stats.kills++; stats.coins++; hitStreak++; cekHitStreak(); bulletHit = true; break;
                 }
             }
         }
@@ -792,6 +864,7 @@ function draw() {
         ctx.fillStyle = '#fff'; ctx.shadowBlur = 0; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center"; ctx.fillText("⚡", b.x + b.w/2, b.y + 16);
     });
 
+    drawAura();
     ctx.shadowBlur = 8;
     bullets.forEach(b => { ctx.fillStyle = b.color || (isBoosted ? '#ff1493' : '#fff'); ctx.shadowColor = b.color || (isBoosted ? '#ff1493' : '#1e90ff'); ctx.fillRect(b.x, b.y, b.w, b.h);
         if (b.rocket) { ctx.fillStyle = '#fff'; ctx.fillRect(b.x + 2, b.y, b.w - 4, 5); ctx.fillStyle = '#ffd24a'; ctx.fillRect(b.x + 2, b.y + b.h, b.w - 4, 6 + Math.random() * 8); } });
@@ -910,7 +983,7 @@ function loop() {
     if (!isPaused) { try { update(); draw(); } catch(error) { console.error(error); } }
     requestAnimationFrame(loop); 
 }
-loadSkins(); applySkin(); flush();
+loadSkins(); applySkin(); applyAura(); flush();
 addEventListener('online',()=>{flush();loadSkins()});
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
